@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <meta http-equiv="Permissions-Policy" content="interest-cohort=()" />
+    <script src="https://cdn.jsdelivr.net/npm/axios@1.1.2/dist/axios.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-GLhlTQ8iRABdZLl6O3oVMWSktQOp6b7In1Zl3/Jr59b6EGGoI1aFkw7cmDA6j6gD" crossorigin="anonymous" />
+        <style>
+            ul {
+              list-style-type: none;
+              margin: 0;
+              padding: 0;
+              overflow: hidden;
+              background-color: #333;
+            }
+            
+            li {
+              float: left;
+            }
+            
+            li a {
+              display: block;
+              color: white;
+              text-align: center;
+              padding: 14px 16px;
+              text-decoration: none;
+            }
+            
+            li a:hover {
+              background-color: #111;
+            }
+            </style>
+    <title>Document</title>
+</head>
+
+<body>
+    <ul>
+        <li><a class="active" href="#home">Home</a></li>
+        <li><a href="students.html">students</a></li>
+        <li><a href="#contact">Contact</a></li>
+        <li><a href="#about">About</a></li>
+      </ul>
+    <div class="input-group">
+        <input type="text" placeholder="Student Name" class="form-control" id="sname" />
+        <input type="number" placeholder="Student Age" class="form-control" id="sage" />
+        <!--form - for file POST request-->
+        <form action="/upload" method="POST" enctype="multipart/form-data">
+            <input type="file" placeholder="Profile Picture" class="form-control" id="spic" />
+        </form>
+        <!--/form - for file POST request-->
+        <button type="button" class="btn btn-outline-primary" onclick="addstudent()">
+            Add
+        </button>
+    </div>
+
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th scope="col" style="text-align: center">#</th>
+                <th scope="col" style="text-align: center">Student Name</th>
+                <th scope="col" style="text-align: center">Student Age</th>
+                <th scope="col" style="text-align: center">Picture</th>
+                <th scope="col" style="text-align: center">Created Time</th>
+                <th scope="col" style="text-align: center">Update</th>
+                <th scope="col" style="text-align: center">Delete</th>
+            </tr>
+        </thead>
+        <tbody id="display">
+            <!--here the innerhtml table-->
+        </tbody>
+    </table>
+    User<input id="user">
+    Pwd<input id="pwd">
+    <button onclick="login()">Login</button>
+    <button onclick="register()">Register</button>
+    <button onclick="loadData()">test students</button>
+
+    <script>
+        let token = ""
+        const MY_SERVER = "https://djangoweb-w.onrender.com"; // had to add last slash else I receive CORS error
+        // http://127.0.0.1:8000
+        const register = async () => {
+            res = await axios.post(MY_SERVER + "/register/", {
+                "username": user.value,
+                "password": pwd.value,
+                "email":"wa@ga.com"
+            });
+            console.log(res.data)
+        }
+        const login = async () => {
+            res = await axios.post(MY_SERVER + "/login/", {
+                "username": user.value,
+                "password": pwd.value
+            });
+            token = res.data.access
+            localStorage.setItem('token', token)
+            console.log(res.data.access)
+        }
+
+
+        const loadData = async () => {
+            
+            if(!token){
+                token= localStorage.getItem('token')
+            }
+            console.log(token)
+            if(token){
+            const config = {
+                headers: { Authorization: `Bearer ${token}` }
+            };
+            res = await axios.get(MY_SERVER + "/students",config);
+
+            console.log(res.data);
+            display.innerHTML = "";
+            res.data.forEach((element) => {
+                row = `<td style="text-align:center;">${element.sname}</td>
+                <td style="text-align:center;">${element.title}</td>
+                <td style="text-align:center;">${element.title}</td>
+                <td style="text-align:center;"><img src=http://127.0.0.1:8000/posts/${element.image} width="30" height="30"></td>
+                <td style="text-align:center;">${element.title}</td>
+                <td style="text-align:center;"><button type="button" class="btn btn-warning" onclick="upstudent(${element.title})">Update</button></td>
+                <td style="text-align:center;"><button type="button" class="btn btn-danger" onclick="delstudent(${element.title})">Delete</button></td>
+                `;
+
+                display.innerHTML += row;
+            });
+        }else {
+            console.log("the token is empty...")
+        }
+        };
+
+
+        function delstudent(id) {
+            axios
+                .delete(MY_SERVER + id)
+                .then((result) => {
+                    console.log(result.data);
+                    loadData();
+                })
+                .catch((error) => console.log(error));
+        }
+
+        const upstudent = (id) => {
+            const formData = new FormData();
+            formData.append("title", sname.value);
+            formData.append("content", sage.value);
+            formData.append("image", spic.files[0]);
+
+            axios
+                .put(MY_SERVER + id, formData)
+                .then((result) => {
+                    console.log(result.data);
+                    loadData();
+                })
+                .catch((error) => console.log(error));
+        };
+
+        const addstudent = () => {
+            const formData = new FormData();
+            formData.append("title", sname.value);
+            formData.append("content", sage.value);
+            formData.append("image", spic.files[0]);
+
+            axios.post(MY_SERVER + "/posts/", formData).then((r) => loadData());
+            // console.log(result.data);
+
+            //   .catch((error) => console.log(error));
+        };
+
+      // CHATGPT: addstudent & upstudent function, you are sending the file object directly as a part of the JSON payload, which will not work.
+      // You need to use the FormData API to properly construct the payload with the file, like so above
+
+      //const upstudent = (id) => {
+      //    axios.put(MY_SERVER + id, { "name": sname.value, "age": sage.value }).then(result => {
+      //        console.log(result.data);
+      //        loadData();
+      //    }
+      //    ).catch(error => console.log(error));
+      //}
+
+      //const addstudent = () => {
+      //    axios.post(MY_SERVER, { "name": sname.value, "age": sage.value }).then(result => {
+      //        console.log(result.data);
+      //        loadData();
+      //    }
+      //    ).catch(error => console.log(error));
+
+      //}
+    </script>
+</body>
+
+</html>
